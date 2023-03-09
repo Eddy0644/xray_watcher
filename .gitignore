@@ -1,0 +1,4 @@
+/node_modules/
+/secret.js
+/logs/
+/database.json
