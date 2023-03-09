@@ -6,6 +6,7 @@ const {dataEntryLogger,cyLogger}=require('./logger')();
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const save_to_file_interval=10*60*1000  , poll_interval=7*1000;
 let traffic_db={},traffic_db_stat={initialTimestamp:Date.now(), records:0, nodeRecords:{}};
+let pullData_error_flag=0;
 
 const tgbot = new TelegramBot(config.TGToken,
     {polling: true, request: {proxy: "http://127.0.0.1:10811",},});
@@ -166,22 +167,32 @@ async function pullData_local(t_what){
     cyLogger.debug(`pullData_local initiated with ${t_what}`);
     await fetch(`http://127.0.0.1/${t_what}.json`).then(response=>response.json()).then(async response=>{await sub_processData(response,1)});
 }
-async function pullData(){
-    // await fetch("https://www.cutecloud.net/user/ajax_data/chart/index_node_traffic", {
-    //     method: 'GET',
-    //     headers: {
-    //         'Content-Type': 'application/json',
-    //         'Cookie':config.cookie
-    //     },
-    // }).then(response=>response.json()).then(async response=>{await sub_processData(response,0)});
+async function pullData(next_interval){
     const child = require('child_process').exec('D:\\_App\\v2rayN-Core\\xray.exe api statsquery --server=127.0.0.1:1188')
 
     child.stdout.on('data', data => {
-        console.log('stdout 输出:', data);
-    })
+        sub_processData(JSON.parse(data).stat,false);
+        if(pullData_error_flag){
+            //Here to clean the error flag
+            cyLogger.info(`xray incident solved after ${pullData_error_flag} fail retries.`);
+            pullData_error_flag=0;
+        }
+        if(next_interval!==0)setTimeout(r=>{pullData(next_interval)},next_interval);
+    });
     child.stderr.on('data', err => {
-        console.log('error 输出:', err);
-    })
+        if(pullData_error_flag === 0){
+            //error flag = 0
+            cyLogger.warn(`xray thrown an error: ${err}`);
+            pullData_error_flag=1;
+        }else{
+            //error flag > 0
+            if(pullData_error_flag%5){
+                pullData_error_flag++;
+            }else{
+                cyLogger.debug(`Another 5 xray error thrown.`);
+            }
+        }
+    });
 }
 //Uncomment this to breed data from some cached files.
 // pullData_local("ta").then(r=>{
@@ -198,10 +209,5 @@ async function pullData(){
 // });
 pullData();
 
-// setTimeout(()=>{
-//     setInterval(async()=>{
-//         await pullData().then(sub_mergeAndSave);
-//     },poll_interval);
-// },1000);
 
 

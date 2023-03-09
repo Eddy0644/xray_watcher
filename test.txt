@@ -10,3 +10,22 @@ stdout 输出: {
 xray.exe api stats --server=127.0.0.1:1188 --name="outbound>>>outsocks>>>traffic>>>downlink"
 error 输出: failed to get stats: rpc error: code = Unknown desc = app/stats/command: outbound>>>outsocks>>>traffic>>>downlink not found.
 
+
+statsquery Example:
+{
+    "stat": [
+        {
+            "name": "outbound>>>block>>>traffic>>>uplink"
+        },
+        {
+            "name": "outbound>>>block>>>traffic>>>downlink"
+        },
+        {
+            "name": "outbound>>>direct>>>traffic>>>uplink"
+        },
+        {
+            "name": "outbound>>>direct>>>traffic>>>downlink",
+            "value": 5132513
+        }
+    ]
+}
