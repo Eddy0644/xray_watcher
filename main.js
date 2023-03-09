@@ -5,7 +5,7 @@ const fs = require("fs");
 // const {dataEntryLogger,cyLogger}=require('./auxiliary')();
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-const save_to_file_interval=10*60*1000  , poll_interval=2*1000;
+const save_to_file_interval=4*1000  , poll_interval=2*1000;
 let traffic_db={},traffic_db_stat={initialTimestamp:Date.now(), records:0, nodeRecords:{}};
 // const tgbot = new require('node-telegram-bot-api')(c.config.TGToken,
 
@@ -50,7 +50,6 @@ async function sub_processData(respJSON,is_local){
         //Insert into my memory db
         traffic_db[ItemData.name].push({
             ts:nowTimestamp,
-            name:ItemData.name,
             usedByte:ItemData.value
         });
     }
@@ -77,43 +76,42 @@ async function sub_mergeAndSave(){
         return b.substring(0,b.length-4);
     };
     //start iterating over the array
-    for (const nodeId in traffic_db) {
-        //nodeId is the key of outer circulation
+    for (const ItemName in traffic_db) {
+        //ItemName is the key of outer circulation
         //get a copy of node-in-db
 
-        let nodeEntries=traffic_db[nodeId];
+        let ItemEntries=traffic_db[ItemName];
         //Circulate to delete duplicate items
 
-        for(let nodeEntryID in nodeEntries){
-            nodeEntryID=parseInt(nodeEntryID);
+        for(let ItemEntryID in ItemEntries){
+            ItemEntryID=parseInt(ItemEntryID);
             //The first entry of a node has nothing to compare, as of now
 
-            if(nodeEntryID===0)continue;
+            if(ItemEntryID===0)continue;
             //Delete an entry that have no changes since last entry
 
-            if(nodeEntries[nodeEntryID].usedByte===nodeEntries[nodeEntryID-1].usedByte){
-                nodeEntries.splice(nodeEntryID,1);
+            if(ItemEntries[ItemEntryID].usedByte===ItemEntries[ItemEntryID-1].usedByte){
+                ItemEntries.splice(ItemEntryID,1);
             }
         }
         //Save back into mem-db
-        traffic_db[nodeId]=nodeEntries;
+        traffic_db[ItemName]=ItemEntries;
         //Check in savedDB and merge into
 
         //In savedDB I use node_name for index.
-        const nodeName=nodeEntries[0].name;
         let createdNow=false;
-        if(!savedDB[nodeName]){
+        if(!savedDB[ItemName]){
             //this means a new node which didn't appear in former times.
             //Start creating an entry in savedDB
-            savedDB[nodeName]=[];
+            savedDB[ItemName]=[];
             createdNow=true;
         }
-        let last_entry_in_savedDB=(!createdNow)?savedDB[nodeName][savedDB[nodeName].length-1]:{
+        let last_entry_in_savedDB=(!createdNow)?savedDB[ItemName][savedDB[ItemName].length-1]:{
             usedByte:0,
-            ts2:nodeEntries[0].ts
+            ts2:ItemEntries[0].ts
         };
-        for (const nodeEntriesKey in nodeEntries) {
-            const thisEntry=nodeEntries[nodeEntriesKey];
+        for (const ItemEntriesKey in ItemEntries) {
+            const thisEntry=ItemEntries[ItemEntriesKey];
             if(last_entry_in_savedDB.usedByte===thisEntry.usedByte){
                 //usedByte not change, not inserting
                 continue;
@@ -125,11 +123,11 @@ async function sub_mergeAndSave(){
                 ts2:thisEntry.ts,
                 increment:(!createdNow)?thisEntry.usedByte-last_entry_in_savedDB.usedByte:-1
             };
-            savedDB[nodeName].push(saveObj);
-            // toSaveInCSV+=`${nodeName}\t\t,${convertToLocaleTime(saveObj.ts1)}, ${convertToLocaleTime(saveObj.ts2)}, ${saveObj.usedByte},${saveObj.increment}\n`;
-
+            savedDB[ItemName].push(saveObj);
+            // toSaveInCSV+=`${ItemName}\t\t,${convertToLocaleTime(saveObj.ts1)}, ${convertToLocaleTime(saveObj.ts2)}, ${saveObj.usedByte},${saveObj.increment}\n`;
+                //TODO:
             // c.dataEntryLogger.info(toSaveInCSV);
-            c.dataEntryLogger.addContext("nodeName",nodeName.replace(" ",""));
+            c.dataEntryLogger.addContext("nodeName",ItemName.replace(" ",""));
             c.dataEntryLogger.addContext("usedTraffic1",(saveObj.usedByte/1024/1024).toFixed(3).toString());
             c.dataEntryLogger.addContext("increment1",(saveObj.increment!==-1)?(saveObj.increment/1024/1024).toFixed(3).toString():"-1");
             c.dataEntryLogger.addContext("usedTraffic2",saveObj.usedByte.toString());
@@ -137,14 +135,14 @@ async function sub_mergeAndSave(){
             c.dataEntryLogger.info(`${convertToLocaleTime(saveObj.ts1)}, ${convertToLocaleTime(saveObj.ts2)}`);
 
             //Refresh last_entry_in_savedDB
-            last_entry_in_savedDB=savedDB[nodeName][savedDB[nodeName].length-1];
+            last_entry_in_savedDB=savedDB[ItemName][savedDB[ItemName].length-1];
             createdNow=false;
-        } // for (const nodeEntriesKey in nodeEntries)
+        } // for (const nodeEntriesKey in ItemEntries)
         //Now cleaning up traffic_db to avoid duplicate entries in db and log.
 
-        nodeEntries.splice(0,nodeEntries.length-1);
+        ItemEntries.splice(0,ItemEntries.length-1);
         //Write back to memory
-        traffic_db[nodeId]=nodeEntries;
+        traffic_db[ItemName]=ItemEntries;
     }
     fs.writeFileSync("database.json",JSON.stringify(savedDB,null,2));
 }
