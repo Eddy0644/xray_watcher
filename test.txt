@@ -1,0 +1,12 @@
+xray.exe api stats --server=127.0.0.1:1188 --name="outbound>>>proxy>>>traffic>>>downlink"
+stdout 输出: {
+    "stat": {
+        "name": "outbound>>>proxy>>>traffic>>>downlink",
+        "value": 924
+    }
+}
+
+
+xray.exe api stats --server=127.0.0.1:1188 --name="outbound>>>outsocks>>>traffic>>>downlink"
+error 输出: failed to get stats: rpc error: code = Unknown desc = app/stats/command: outbound>>>outsocks>>>traffic>>>downlink not found.
+

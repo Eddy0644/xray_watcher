@@ -174,7 +174,7 @@ async function pullData(){
     //         'Cookie':config.cookie
     //     },
     // }).then(response=>response.json()).then(async response=>{await sub_processData(response,0)});
-    const child = require('child_process').exec('xray api stats --server=127.0.0.1:1188 --name="user>>>@lzTemp>>>traffic>>>downlink"')
+    const child = require('child_process').exec('D:\\_App\\v2rayN-Core\\xray.exe api statsquery --server=127.0.0.1:1188')
 
     child.stdout.on('data', data => {
         console.log('stdout 输出:', data);
