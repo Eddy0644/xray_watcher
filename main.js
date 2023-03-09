@@ -11,6 +11,7 @@ const tgbot = new TelegramBot(config.TGToken,
     {polling: true, request: {proxy: "http://127.0.0.1:10811",},});
 const tgBotSendMessage = async (msg, isSilent = false, parseMode) => {
     /*Debug Only;no TG messages delivered*/
+
     // return tgLogger.info(`Blocked Msg: ${msg}`);
     await delay(100);
     let form = {};
@@ -27,9 +28,9 @@ tgbot.on('message', (msg) => {
     cyLogger.debug(`I received a message from chatId ${msg.chat.id}`);
 });
 // {
-    tgbot.sendMessage(-1001765607580, 'Service Startup...', {
-        message_thread_id: 2
-    }).then(()=>{});
+//     tgbot.sendMessage(-1001765607580, 'Service Startup...', {
+//         message_thread_id: 2
+//     }).then(()=>{});
 // }
 //TODO:add delimiters and time-lapse in logs;
 // add auto-login system to avoid cookie expire (after 1d appx.) and check-in system;
@@ -166,14 +167,21 @@ async function pullData_local(t_what){
     await fetch(`http://127.0.0.1/${t_what}.json`).then(response=>response.json()).then(async response=>{await sub_processData(response,1)});
 }
 async function pullData(){
-    cyLogger.debug(`pullData initiated.`);
-    await fetch("https://www.cutecloud.net/user/ajax_data/chart/index_node_traffic", {
-        method: 'GET',
-        headers: {
-            'Content-Type': 'application/json',
-            'Cookie':config.cookie
-        },
-    }).then(response=>response.json()).then(async response=>{await sub_processData(response,0)});
+    // await fetch("https://www.cutecloud.net/user/ajax_data/chart/index_node_traffic", {
+    //     method: 'GET',
+    //     headers: {
+    //         'Content-Type': 'application/json',
+    //         'Cookie':config.cookie
+    //     },
+    // }).then(response=>response.json()).then(async response=>{await sub_processData(response,0)});
+    const child = require('child_process').exec('xray api stats --server=127.0.0.1:1188 --name="user>>>@lzTemp>>>traffic>>>downlink"')
+
+    child.stdout.on('data', data => {
+        console.log('stdout 输出:', data);
+    })
+    child.stderr.on('data', err => {
+        console.log('error 输出:', err);
+    })
 }
 //Uncomment this to breed data from some cached files.
 // pullData_local("ta").then(r=>{
@@ -188,10 +196,12 @@ async function pullData(){
 //         })
 //     })
 // });
-setTimeout(()=>{
-    setInterval(async()=>{
-        await pullData().then(sub_mergeAndSave);
-    },poll_interval);
-},1000);
+pullData();
+
+// setTimeout(()=>{
+//     setInterval(async()=>{
+//         await pullData().then(sub_mergeAndSave);
+//     },poll_interval);
+// },1000);
 
 
