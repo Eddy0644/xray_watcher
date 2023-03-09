@@ -8,33 +8,32 @@ const save_to_file_interval=10*60*1000  , poll_interval=7*1000;
 let traffic_db={},traffic_db_stat={initialTimestamp:Date.now(), records:0, nodeRecords:{}};
 let pullData_error_flag=0;
 
-const tgbot = new TelegramBot(config.TGToken,
-    {polling: true, request: {proxy: "http://127.0.0.1:10811",},});
-const tgBotSendMessage = async (msg, isSilent = false, parseMode) => {
-    /*Debug Only;no TG messages delivered*/
-
-    // return tgLogger.info(`Blocked Msg: ${msg}`);
-    await delay(100);
-    let form = {};
-    if (isSilent) form.disable_notification = true;
-    if (parseMode) form.parse_mode = parseMode;
-    await tgbot.sendMessage(config.My_TG_ID, msg, form).catch((e) => cyLogger.error(e));
-};
-tgbot.sendMessage2 = tgBotSendMessage;
-
-tgbot.on('message', (msg) => {
-    // noinspection JSUnresolvedVariable,JSIgnoredPromiseFromCall
-    tgbot.sendMessage(msg.chat.id, 'Received your message,' + msg.chat.id);
-    // noinspection JSUnresolvedVariable
-    cyLogger.debug(`I received a message from chatId ${msg.chat.id}`);
-});
+// const tgbot = new TelegramBot(config.TGToken,
+//     {polling: true, request: {proxy: "http://127.0.0.1:10811",},});
+// const tgBotSendMessage = async (msg, isSilent = false, parseMode) => {
+//     /*Debug Only;no TG messages delivered*/
+//
+//     // return tgLogger.info(`Blocked Msg: ${msg}`);
+//     await delay(100);
+//     let form = {};
+//     if (isSilent) form.disable_notification = true;
+//     if (parseMode) form.parse_mode = parseMode;
+//     await tgbot.sendMessage(config.My_TG_ID, msg, form).catch((e) => cyLogger.error(e));
+// };
+// tgbot.sendMessage2 = tgBotSendMessage;
+//
+// tgbot.on('message', (msg) => {
+//     // noinspection JSUnresolvedVariable,JSIgnoredPromiseFromCall
+//     tgbot.sendMessage(msg.chat.id, 'Received your message,' + msg.chat.id);
+//     // noinspection JSUnresolvedVariable
+//     cyLogger.debug(`I received a message from chatId ${msg.chat.id}`);
+// });
 // {
 //     tgbot.sendMessage(-1001765607580, 'Service Startup...', {
 //         message_thread_id: 2
 //     }).then(()=>{});
 // }
 //TODO:add delimiters and time-lapse in logs;
-// add auto-login system to avoid cookie expire (after 1d appx.) and check-in system;
 // integrate TG Bot for notification.
 
 
@@ -167,8 +166,8 @@ async function pullData_local(t_what){
     cyLogger.debug(`pullData_local initiated with ${t_what}`);
     await fetch(`http://127.0.0.1/${t_what}.json`).then(response=>response.json()).then(async response=>{await sub_processData(response,1)});
 }
-async function pullData(next_interval){
-    const child = require('child_process').exec('D:\\_App\\v2rayN-Core\\xray.exe api statsquery --server=127.0.0.1:1188')
+function pullData(next_interval){
+    const child = require('child_process').exec('D:\\_App\\v2rayN-Core\\xray.exe api statsquery --server=127.0.0.1:11880')
 
     child.stdout.on('data', data => {
         sub_processData(JSON.parse(data).stat,false);
@@ -192,6 +191,8 @@ async function pullData(next_interval){
                 cyLogger.debug(`Another 5 xray error thrown.`);
             }
         }
+        if(next_interval!==0)setTimeout(r=>{pullData(next_interval)},next_interval);
+
     });
 }
 //Uncomment this to breed data from some cached files.
@@ -207,7 +208,7 @@ async function pullData(next_interval){
 //         })
 //     })
 // });
-pullData();
+pullData(1000);
 
 
 
