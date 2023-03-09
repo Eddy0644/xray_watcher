@@ -1,15 +1,14 @@
 import * as c from './auxiliary';
 const fetch = require("node-fetch");
-const TelegramBot = require('node-telegram-bot-api');
+// const TelegramBot = require('node-telegram-bot-api');
 const fs = require("fs");
 // const {dataEntryLogger,cyLogger}=require('./auxiliary')();
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-const save_to_file_interval=10*60*1000  , poll_interval=7*1000;
+const save_to_file_interval=10*60*1000  , poll_interval=2*1000;
 let traffic_db={},traffic_db_stat={initialTimestamp:Date.now(), records:0, nodeRecords:{}};
-let pullData_error_flag=0;
+// const tgbot = new require('node-telegram-bot-api')(c.config.TGToken,
 
-// const tgbot = new TelegramBot(c.config.TGToken,
 //     {polling: true, request: {proxy: "http://127.0.0.1:10811",},});
 // const tgBotSendMessage = async (msg, isSilent = false, parseMode) => {
 //     /*Debug Only;no TG messages delivered*/
@@ -38,38 +37,34 @@ let pullData_error_flag=0;
 // integrate TG Bot for notification.
 
 
-//以data子项的键名为索引
 async function sub_processData(respJSON,is_local){
     const nowTimestamp=Date.now();
-    if(!is_local)c.cyLogger.trace(`Refreshed Data, ${JSON.stringify(respJSON)}`);
-    for (const nodeIdStr in (respJSON.data)) {
-        const nodeId=parseInt(nodeIdStr);
-        const nodeData=respJSON.data[nodeId];
-        if(!traffic_db[nodeId]) {
+    if(!is_local)c.cyLogger.trace(`Gained Raw Data, ${JSON.stringify(respJSON)}`);
+    for (const ItemId in (respJSON)) {
+        const ItemData=respJSON[ItemId];
+        if(!ItemData.value)continue;
+        if(!traffic_db[ItemData.name]) {
             //Non-exist : Create new mem-db entry
-            traffic_db[nodeId] = [];
-            traffic_db_stat.nodeRecords[nodeId]=0;
+            traffic_db[ItemData.name] = [];
         }
         //Insert into my memory db
-        // console.log(response,nodeId,nodeIdStr);
-        traffic_db[nodeId].push({
+        traffic_db[ItemData.name].push({
             ts:nowTimestamp,
-            name:nodeData.node_name,
-            usedByte:nodeData.ud
+            name:ItemData.name,
+            usedByte:ItemData.value
         });
-        traffic_db_stat.nodeRecords[nodeId]++;
-        traffic_db_stat.records++;
     }
-    //Check if mem-db is full.If so, Write to file.
-    if(nowTimestamp > traffic_db_stat.initialTimestamp + save_to_file_interval)
+    //Check if it is time to rewrite mem-db .If so, Write to file.
+    if(nowTimestamp > traffic_db_stat.initialTimestamp + save_to_file_interval) {
+        //TODO:Merge the two functions together.
         await sub_mergeAndSave();
-
+    }
     // logger.debug(traffic_db);
 }
-
-
-
 //Merge entries in mem-db, generate a general db for integrating into larger DB.
+
+
+
 async function sub_mergeAndSave(){
     //use json to store data
     let savedDB=JSON.parse(fs.readFileSync("database.json").toString());
@@ -84,28 +79,28 @@ async function sub_mergeAndSave(){
     //start iterating over the array
     for (const nodeId in traffic_db) {
         //nodeId is the key of outer circulation
-
         //get a copy of node-in-db
-        let nodeEntries=traffic_db[nodeId];
 
+        let nodeEntries=traffic_db[nodeId];
         //Circulate to delete duplicate items
+
         for(let nodeEntryID in nodeEntries){
             nodeEntryID=parseInt(nodeEntryID);
-
             //The first entry of a node has nothing to compare, as of now
-            if(nodeEntryID===0)continue;
 
+            if(nodeEntryID===0)continue;
             //Delete an entry that have no changes since last entry
+
             if(nodeEntries[nodeEntryID].usedByte===nodeEntries[nodeEntryID-1].usedByte){
                 nodeEntries.splice(nodeEntryID,1);
             }
         }
         //Save back into mem-db
         traffic_db[nodeId]=nodeEntries;
-
         //Check in savedDB and merge into
-            //In savedDB I use node_name for index.
-            const nodeName=nodeEntries[0].name;
+
+        //In savedDB I use node_name for index.
+        const nodeName=nodeEntries[0].name;
         let createdNow=false;
         if(!savedDB[nodeName]){
             //this means a new node which didn't appear in former times.
@@ -131,35 +126,37 @@ async function sub_mergeAndSave(){
                 increment:(!createdNow)?thisEntry.usedByte-last_entry_in_savedDB.usedByte:-1
             };
             savedDB[nodeName].push(saveObj);
-
             // toSaveInCSV+=`${nodeName}\t\t,${convertToLocaleTime(saveObj.ts1)}, ${convertToLocaleTime(saveObj.ts2)}, ${saveObj.usedByte},${saveObj.increment}\n`;
+
             // c.dataEntryLogger.info(toSaveInCSV);
             c.dataEntryLogger.addContext("nodeName",nodeName.replace(" ",""));
             c.dataEntryLogger.addContext("usedTraffic1",(saveObj.usedByte/1024/1024).toFixed(3).toString());
             c.dataEntryLogger.addContext("increment1",(saveObj.increment!==-1)?(saveObj.increment/1024/1024).toFixed(3).toString():"-1");
             c.dataEntryLogger.addContext("usedTraffic2",saveObj.usedByte.toString());
             c.dataEntryLogger.addContext("increment2",(saveObj.increment!==-1)?saveObj.increment.toString():"-1");
-
             c.dataEntryLogger.info(`${convertToLocaleTime(saveObj.ts1)}, ${convertToLocaleTime(saveObj.ts2)}`);
+
             //Refresh last_entry_in_savedDB
             last_entry_in_savedDB=savedDB[nodeName][savedDB[nodeName].length-1];
             createdNow=false;
         } // for (const nodeEntriesKey in nodeEntries)
-
         //Now cleaning up traffic_db to avoid duplicate entries in db and log.
+
         nodeEntries.splice(0,nodeEntries.length-1);
         //Write back to memory
         traffic_db[nodeId]=nodeEntries;
     }
     fs.writeFileSync("database.json",JSON.stringify(savedDB,null,2));
-
-
 }
+
+
 // noinspection JSUnusedLocalSymbols
 async function pullData_local(t_what){
     c.cyLogger.debug(`pullData_local initiated with ${t_what}`);
     await fetch(`http://127.0.0.1/${t_what}.json`).then(response=>response.json()).then(async response=>{await sub_processData(response,1)});
 }
+
+let pullData_error_flag=0;
 function pullData(next_interval){
     const child = require('child_process').exec('D:\\_App\\v2rayN-Core\\xray.exe api statsquery --server=127.0.0.1:11880')
 
@@ -202,7 +199,7 @@ function pullData(next_interval){
 //         })
 //     })
 // });
-pullData(1000);
+pullData(poll_interval);
 
 
 
