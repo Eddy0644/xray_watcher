@@ -1,7 +1,8 @@
-const log4js = require('log4js');
+// Start Logging Procedure -------------------------------
+const {configure, getLogger} = require('log4js');
 const logger_pattern = "[%d{hh:mm:ss.SSS} %5.5p] %m";
 const logger_pattern_console = "[%d{yy/MM/dd hh:mm:ss} %[%5.5p]%] %m";
-log4js.configure({
+configure({
     appenders: {
         "console": {
             type: "console",
@@ -61,10 +62,16 @@ log4js.configure({
     }
 })
 // module.exports=log4js.getLogger;
-module.exports = (/* maybe a param here for classification */) => {
-    return {
-        conLogger: log4js.getLogger("con"),
-        cyLogger: log4js.getLogger("cy"),
-        dataEntryLogger: log4js.getLogger("dataEntry"),
-    }
-};
+// module.exports = (/* maybe a param here for classification */) => {
+//     return {
+//         conLogger: log4js.getLogger("con"),
+//         cyLogger: log4js.getLogger("cy"),
+//         dataEntryLogger: log4js.getLogger("dataEntry"),
+//     }
+// };
+
+// Start Export -------------------------------
+export let conLogger=getLogger("con");
+export let cyLogger=getLogger("cy");
+export let dataEntryLogger=log4js.getLogger("dataEntry");
+export const config = require('./secret');

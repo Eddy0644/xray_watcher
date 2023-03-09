@@ -1,14 +1,15 @@
+import * as c from './auxiliary';
 const fetch = require("node-fetch");
-const config = require('./secret');
 const TelegramBot = require('node-telegram-bot-api');
 const fs = require("fs");
-const {dataEntryLogger,cyLogger}=require('./logger')();
+// const {dataEntryLogger,cyLogger}=require('./auxiliary')();
+
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const save_to_file_interval=10*60*1000  , poll_interval=7*1000;
 let traffic_db={},traffic_db_stat={initialTimestamp:Date.now(), records:0, nodeRecords:{}};
 let pullData_error_flag=0;
 
-// const tgbot = new TelegramBot(config.TGToken,
+// const tgbot = new TelegramBot(c.config.TGToken,
 //     {polling: true, request: {proxy: "http://127.0.0.1:10811",},});
 // const tgBotSendMessage = async (msg, isSilent = false, parseMode) => {
 //     /*Debug Only;no TG messages delivered*/
@@ -18,7 +19,7 @@ let pullData_error_flag=0;
 //     let form = {};
 //     if (isSilent) form.disable_notification = true;
 //     if (parseMode) form.parse_mode = parseMode;
-//     await tgbot.sendMessage(config.My_TG_ID, msg, form).catch((e) => cyLogger.error(e));
+//     await tgbot.sendMessage(c.config.My_TG_ID, msg, form).catch((e) => c.cyLogger.error(e));
 // };
 // tgbot.sendMessage2 = tgBotSendMessage;
 //
@@ -26,7 +27,7 @@ let pullData_error_flag=0;
 //     // noinspection JSUnresolvedVariable,JSIgnoredPromiseFromCall
 //     tgbot.sendMessage(msg.chat.id, 'Received your message,' + msg.chat.id);
 //     // noinspection JSUnresolvedVariable
-//     cyLogger.debug(`I received a message from chatId ${msg.chat.id}`);
+//     c.cyLogger.debug(`I received a message from chatId ${msg.chat.id}`);
 // });
 // {
 //     tgbot.sendMessage(-1001765607580, 'Service Startup...', {
@@ -37,18 +38,10 @@ let pullData_error_flag=0;
 // integrate TG Bot for notification.
 
 
-// No exiting when reach :EOF
-// alwaysSleep(1000);
-// function alwaysSleep(timeout) {
-//     setTimeout(alwaysSleep, timeout, timeout);
-// }
-//----------
-
 //以data子项的键名为索引
 async function sub_processData(respJSON,is_local){
-    if(respJSON.ret !== 1)return false;
     const nowTimestamp=Date.now();
-    if(!is_local)cyLogger.trace(`Refreshed Data, ${JSON.stringify(respJSON)}`);
+    if(!is_local)c.cyLogger.trace(`Refreshed Data, ${JSON.stringify(respJSON)}`);
     for (const nodeIdStr in (respJSON.data)) {
         const nodeId=parseInt(nodeIdStr);
         const nodeData=respJSON.data[nodeId];
@@ -140,14 +133,14 @@ async function sub_mergeAndSave(){
             savedDB[nodeName].push(saveObj);
 
             // toSaveInCSV+=`${nodeName}\t\t,${convertToLocaleTime(saveObj.ts1)}, ${convertToLocaleTime(saveObj.ts2)}, ${saveObj.usedByte},${saveObj.increment}\n`;
-            // dataEntryLogger.info(toSaveInCSV);
-            dataEntryLogger.addContext("nodeName",nodeName.replace(" ",""));
-            dataEntryLogger.addContext("usedTraffic1",(saveObj.usedByte/1024/1024).toFixed(3).toString());
-            dataEntryLogger.addContext("increment1",(saveObj.increment!==-1)?(saveObj.increment/1024/1024).toFixed(3).toString():"-1");
-            dataEntryLogger.addContext("usedTraffic2",saveObj.usedByte.toString());
-            dataEntryLogger.addContext("increment2",(saveObj.increment!==-1)?saveObj.increment.toString():"-1");
+            // c.dataEntryLogger.info(toSaveInCSV);
+            c.dataEntryLogger.addContext("nodeName",nodeName.replace(" ",""));
+            c.dataEntryLogger.addContext("usedTraffic1",(saveObj.usedByte/1024/1024).toFixed(3).toString());
+            c.dataEntryLogger.addContext("increment1",(saveObj.increment!==-1)?(saveObj.increment/1024/1024).toFixed(3).toString():"-1");
+            c.dataEntryLogger.addContext("usedTraffic2",saveObj.usedByte.toString());
+            c.dataEntryLogger.addContext("increment2",(saveObj.increment!==-1)?saveObj.increment.toString():"-1");
 
-            dataEntryLogger.info(`${convertToLocaleTime(saveObj.ts1)}, ${convertToLocaleTime(saveObj.ts2)}`);
+            c.dataEntryLogger.info(`${convertToLocaleTime(saveObj.ts1)}, ${convertToLocaleTime(saveObj.ts2)}`);
             //Refresh last_entry_in_savedDB
             last_entry_in_savedDB=savedDB[nodeName][savedDB[nodeName].length-1];
             createdNow=false;
@@ -162,18 +155,19 @@ async function sub_mergeAndSave(){
 
 
 }
+// noinspection JSUnusedLocalSymbols
 async function pullData_local(t_what){
-    cyLogger.debug(`pullData_local initiated with ${t_what}`);
+    c.cyLogger.debug(`pullData_local initiated with ${t_what}`);
     await fetch(`http://127.0.0.1/${t_what}.json`).then(response=>response.json()).then(async response=>{await sub_processData(response,1)});
 }
 function pullData(next_interval){
     const child = require('child_process').exec('D:\\_App\\v2rayN-Core\\xray.exe api statsquery --server=127.0.0.1:11880')
 
-    child.stdout.on('data', data => {
-        sub_processData(JSON.parse(data).stat,false);
+    child.stdout.on('data', async data => {
+        await sub_processData(JSON.parse(data).stat,false);
         if(pullData_error_flag){
             //Here to clean the error flag
-            cyLogger.info(`xray incident solved after ${pullData_error_flag} fail retries.`);
+            c.cyLogger.info(`xray incident solved after ${pullData_error_flag} fail retries.`);
             pullData_error_flag=0;
         }
         if(next_interval!==0)setTimeout(r=>{pullData(next_interval)},next_interval);
@@ -181,14 +175,14 @@ function pullData(next_interval){
     child.stderr.on('data', err => {
         if(pullData_error_flag === 0){
             //error flag = 0
-            cyLogger.warn(`xray thrown an error: ${err}`);
+            c.cyLogger.warn(`xray thrown an error: ${err}`);
             pullData_error_flag=1;
         }else{
             //error flag > 0
             if(pullData_error_flag%5){
                 pullData_error_flag++;
             }else{
-                cyLogger.debug(`Another 5 xray error thrown.`);
+                c.cyLogger.debug(`Another 5 xray error thrown.`);
             }
         }
         if(next_interval!==0)setTimeout(r=>{pullData(next_interval)},next_interval);
