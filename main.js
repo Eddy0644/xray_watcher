@@ -4,7 +4,7 @@ const fetch = require("node-fetch");
 const fs = require("fs");
 // const {dataEntryLogger,cyLogger}=require('./auxiliary')();
 
-const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+// const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const save_to_file_interval=4*1000  , poll_interval=2*1000;
 let traffic_db={},traffic_db_stat={initialTimestamp:Date.now(), records:0, nodeRecords:{}};
 // const tgbot = new require('node-telegram-bot-api')(c.config.TGToken,
