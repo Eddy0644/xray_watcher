@@ -63,7 +63,7 @@ async function sub_processData(respJSON,is_local){
 //Merge entries in mem-db, generate a general db for integrating into larger DB.
 
 function getItemFriendlyName(originalName){
-    return originalName;
+    return originalName.replace(">>>traffic>>>",".");
     //TODO: alias names from "outbound>>>proxy>>>traffic>>>downlink" to "proxy.↓"
 }
 
@@ -159,7 +159,7 @@ async function pullData_local(t_what){
 
 let pullData_error_flag=0;
 function pullData(next_interval){
-    const child = require('child_process').exec('D:\\_App\\v2rayN-Core\\xray.exe api statsquery --server=127.0.0.1:1355')
+    const child = require('child_process').exec('D:\\_App\\v2rayN-Core\\xray.exe api statsquery --server='+config.MyIPPort)
 
     child.stdout.on('data', async data => {
         await sub_processData(JSON.parse(data).stat,false);

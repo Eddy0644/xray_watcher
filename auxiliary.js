@@ -29,7 +29,7 @@ configure({
             alwaysIncludePattern: true,
             layout: {
                 type: "pattern",
-                pattern: "%-45.45X{nodeName},%m,%9.9X{usedTraffic1}MB,%8.8X{increment1}MB,%-11.11X{usedTraffic2},%-11.11X{increment2}",
+                pattern: "%-42.42X{nodeName},%m,%9.9X{usedTraffic1}MB,%8.8X{increment1}MB,%-11.11X{usedTraffic2},%-11.11X{increment2}",
             },
         },
         "dataEntryLog": {
@@ -39,14 +39,15 @@ configure({
             alwaysIncludePattern: true,
             layout: {
                 type: "pattern",
-                pattern: "%-17.17X{nodeName},%m,Total %9.9X{usedTraffic1}MB, Diff %8.8X{increment1}MB. \t[RawData: total %-11.11X{usedTraffic2},diff %-11.11X{increment2}]",
+                pattern: "%-40.40X{nodeName},%m,Total %9.9X{usedTraffic1}MB, Diff %8.8X{increment1}MB. \t[RawData: total %-11.11X{usedTraffic2},diff %-11.11X{increment2}]",
             },
         },
         "dataEntryCon": {
             type: "console",
             layout: {
                 type: "pattern",
-                pattern: "[%d{yy/MM/dd hh:mm:ss}  NODE] %17.17X{nodeName},Total %9.9X{usedTraffic1}MB, Diff %8.8X{increment1}MB."
+                pattern: "[%d{yy/MM/dd hh:mm:ss}  NODE] [RawData: total %-11.11X{usedTraffic2},diff %-11.11X{increment2}]%-40.40X{nodeName},"
+                //  Total %9.9X{usedTraffic1}MB, Diff %8.8X{increment1}MB.
             },
         },
         "debug_to_con": {
