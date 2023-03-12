@@ -1,13 +1,13 @@
-import * as c from './auxiliary';
+// import * as c from './auxiliary';
 const fetch = require("node-fetch");
 // const TelegramBot = require('node-telegram-bot-api');
 const fs = require("fs");
-// const {dataEntryLogger,cyLogger}=require('./auxiliary')();
+const {dataEntryLogger,cyLogger,conLogger,config}=require('./auxiliary')();
 
 // const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const save_to_file_interval=4*1000  , poll_interval=2*1000;
 let traffic_db={},traffic_db_stat={initialTimestamp:Date.now(), records:0, nodeRecords:{}};
-// const tgbot = new require('node-telegram-bot-api')(c.config.TGToken,
+// const tgbot = new require('node-telegram-bot-api')(config.TGToken,
 
 //     {polling: true, request: {proxy: "http://127.0.0.1:10811",},});
 // const tgBotSendMessage = async (msg, isSilent = false, parseMode) => {
@@ -18,7 +18,7 @@ let traffic_db={},traffic_db_stat={initialTimestamp:Date.now(), records:0, nodeR
 //     let form = {};
 //     if (isSilent) form.disable_notification = true;
 //     if (parseMode) form.parse_mode = parseMode;
-//     await tgbot.sendMessage(c.config.My_TG_ID, msg, form).catch((e) => c.cyLogger.error(e));
+//     await tgbot.sendMessage(config.My_TG_ID, msg, form).catch((e) => cyLogger.error(e));
 // };
 // tgbot.sendMessage2 = tgBotSendMessage;
 //
@@ -26,7 +26,7 @@ let traffic_db={},traffic_db_stat={initialTimestamp:Date.now(), records:0, nodeR
 //     // noinspection JSUnresolvedVariable,JSIgnoredPromiseFromCall
 //     tgbot.sendMessage(msg.chat.id, 'Received your message,' + msg.chat.id);
 //     // noinspection JSUnresolvedVariable
-//     c.cyLogger.debug(`I received a message from chatId ${msg.chat.id}`);
+//     cyLogger.debug(`I received a message from chatId ${msg.chat.id}`);
 // });
 // {
 //     tgbot.sendMessage(-1001765607580, 'Service Startup...', {
@@ -39,7 +39,7 @@ let traffic_db={},traffic_db_stat={initialTimestamp:Date.now(), records:0, nodeR
 
 async function sub_processData(respJSON,is_local){
     const nowTimestamp=Date.now();
-    if(!is_local)c.cyLogger.trace(`Gained Raw Data, ${JSON.stringify(respJSON)}`);
+    if(!is_local)cyLogger.trace(`Gained Raw Data, ${JSON.stringify(respJSON)}`);
     for (const ItemId in (respJSON)) {
         const ItemData=respJSON[ItemId];
         if(!ItemData.value)continue;
@@ -129,13 +129,13 @@ async function sub_mergeAndSave(){
             savedDB[ItemName].push(saveObj);
             // toSaveInCSV+=`${ItemName}\t\t,${convertToLocaleTime(saveObj.ts1)}, ${convertToLocaleTime(saveObj.ts2)}, ${saveObj.usedByte},${saveObj.increment}\n`;
                 //TODO:
-            // c.dataEntryLogger.info(toSaveInCSV);
-            c.dataEntryLogger.addContext("nodeName",getItemFriendlyName(ItemName));
-            c.dataEntryLogger.addContext("usedTraffic1",(saveObj.usedByte/1024/1024).toFixed(3).toString());
-            c.dataEntryLogger.addContext("increment1",(saveObj.increment!==-1)?(saveObj.increment/1024/1024).toFixed(3).toString():"-1");
-            c.dataEntryLogger.addContext("usedTraffic2",saveObj.usedByte.toString());
-            c.dataEntryLogger.addContext("increment2",(saveObj.increment!==-1)?saveObj.increment.toString():"-1");
-            c.dataEntryLogger.info(`${convertToLocaleTime(saveObj.ts1)}, ${convertToLocaleTime(saveObj.ts2)}`);
+            // dataEntryLogger.info(toSaveInCSV);
+            dataEntryLogger.addContext("nodeName",getItemFriendlyName(ItemName));
+            dataEntryLogger.addContext("usedTraffic1",(saveObj.usedByte/1024/1024).toFixed(3).toString());
+            dataEntryLogger.addContext("increment1",(saveObj.increment!==-1)?(saveObj.increment/1024/1024).toFixed(3).toString():"-1");
+            dataEntryLogger.addContext("usedTraffic2",saveObj.usedByte.toString());
+            dataEntryLogger.addContext("increment2",(saveObj.increment!==-1)?saveObj.increment.toString():"-1");
+            dataEntryLogger.info(`${convertToLocaleTime(saveObj.ts1)}, ${convertToLocaleTime(saveObj.ts2)}`);
 
             //Refresh last_entry_in_savedDB
             last_entry_in_savedDB=savedDB[ItemName][savedDB[ItemName].length-1];
@@ -153,7 +153,7 @@ async function sub_mergeAndSave(){
 
 // noinspection JSUnusedLocalSymbols
 async function pullData_local(t_what){
-    c.cyLogger.debug(`pullData_local initiated with ${t_what}`);
+    cyLogger.debug(`pullData_local initiated with ${t_what}`);
     await fetch(`http://127.0.0.1/${t_what}.json`).then(response=>response.json()).then(async response=>{await sub_processData(response,1)});
 }
 
@@ -165,7 +165,7 @@ function pullData(next_interval){
         await sub_processData(JSON.parse(data).stat,false);
         if(pullData_error_flag){
             //Here to clean the error flag
-            c.cyLogger.info(`xray incident solved after ${pullData_error_flag} fail retries.`);
+            cyLogger.info(`xray incident solved after ${pullData_error_flag} fail retries.`);
             pullData_error_flag=0;
         }
         if(next_interval!==0)setTimeout(r=>{pullData(next_interval)},next_interval);
@@ -173,14 +173,14 @@ function pullData(next_interval){
     child.stderr.on('data', err => {
         if(pullData_error_flag === 0){
             //error flag = 0
-            c.cyLogger.warn(`xray thrown an error: ${err}`);
+            cyLogger.warn(`xray thrown an error: ${err}`);
             pullData_error_flag=1;
         }else{
             //error flag > 0
             if(pullData_error_flag%5){
                 pullData_error_flag++;
             }else{
-                c.cyLogger.debug(`Another 5 xray error thrown.`);
+                cyLogger.debug(`Another 5 xray error thrown.`);
             }
         }
         if(next_interval!==0)setTimeout(r=>{pullData(next_interval)},next_interval);

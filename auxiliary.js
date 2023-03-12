@@ -62,16 +62,17 @@ configure({
     }
 })
 // module.exports=log4js.getLogger;
-// module.exports = (/* maybe a param here for classification */) => {
-//     return {
-//         conLogger: log4js.getLogger("con"),
-//         cyLogger: log4js.getLogger("cy"),
-//         dataEntryLogger: log4js.getLogger("dataEntry"),
-//     }
-// };
+module.exports = (/* maybe a param here for classification */) => {
+    return {
+        conLogger: log4js.getLogger("con"),
+        cyLogger: log4js.getLogger("cy"),
+        dataEntryLogger: log4js.getLogger("dataEntry"),
+        config:require('./secret')
+    }
+};
 
 // Start Export -------------------------------
-export let conLogger=getLogger("con");
-export let cyLogger=getLogger("cy");
-export let dataEntryLogger=log4js.getLogger("dataEntry");
-export const config = require('./secret');
+// export let conLogger=getLogger("con");
+// export let cyLogger=getLogger("cy");
+// export let dataEntryLogger=log4js.getLogger("dataEntry");
+// export const config = require('./secret');
