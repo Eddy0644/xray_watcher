@@ -1,5 +1,6 @@
 // Start Logging Procedure -------------------------------
 const {configure, getLogger} = require('log4js');
+const log4js = require('log4js');
 const logger_pattern = "[%d{hh:mm:ss.SSS} %5.5p] %m";
 const logger_pattern_console = "[%d{yy/MM/dd hh:mm:ss} %[%5.5p]%] %m";
 configure({
@@ -28,7 +29,7 @@ configure({
             alwaysIncludePattern: true,
             layout: {
                 type: "pattern",
-                pattern: "%-17.17X{nodeName},%m,%9.9X{usedTraffic1}MB,%8.8X{increment1}MB,%-11.11X{usedTraffic2},%-11.11X{increment2}",
+                pattern: "%-45.45X{nodeName},%m,%9.9X{usedTraffic1}MB,%8.8X{increment1}MB,%-11.11X{usedTraffic2},%-11.11X{increment2}",
             },
         },
         "dataEntryLog": {
