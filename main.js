@@ -62,7 +62,10 @@ async function sub_processData(respJSON,is_local){
 }
 //Merge entries in mem-db, generate a general db for integrating into larger DB.
 
-
+function getItemFriendlyName(originalName){
+    return originalName;
+    //TODO: alias names from "outbound>>>proxy>>>traffic>>>downlink" to "proxy.↓"
+}
 
 async function sub_mergeAndSave(){
     //use json to store data
@@ -127,7 +130,7 @@ async function sub_mergeAndSave(){
             // toSaveInCSV+=`${ItemName}\t\t,${convertToLocaleTime(saveObj.ts1)}, ${convertToLocaleTime(saveObj.ts2)}, ${saveObj.usedByte},${saveObj.increment}\n`;
                 //TODO:
             // c.dataEntryLogger.info(toSaveInCSV);
-            c.dataEntryLogger.addContext("nodeName",ItemName.replace(" ",""));
+            c.dataEntryLogger.addContext("nodeName",getItemFriendlyName(ItemName));
             c.dataEntryLogger.addContext("usedTraffic1",(saveObj.usedByte/1024/1024).toFixed(3).toString());
             c.dataEntryLogger.addContext("increment1",(saveObj.increment!==-1)?(saveObj.increment/1024/1024).toFixed(3).toString():"-1");
             c.dataEntryLogger.addContext("usedTraffic2",saveObj.usedByte.toString());
@@ -137,7 +140,7 @@ async function sub_mergeAndSave(){
             //Refresh last_entry_in_savedDB
             last_entry_in_savedDB=savedDB[ItemName][savedDB[ItemName].length-1];
             createdNow=false;
-        } // for (const nodeEntriesKey in ItemEntries)
+        } // end: for (const nodeEntriesKey in ItemEntries)
         //Now cleaning up traffic_db to avoid duplicate entries in db and log.
 
         ItemEntries.splice(0,ItemEntries.length-1);
@@ -156,7 +159,7 @@ async function pullData_local(t_what){
 
 let pullData_error_flag=0;
 function pullData(next_interval){
-    const child = require('child_process').exec('D:\\_App\\v2rayN-Core\\xray.exe api statsquery --server=127.0.0.1:11880')
+    const child = require('child_process').exec('D:\\_App\\v2rayN-Core\\xray.exe api statsquery --server=127.0.0.1:1188')
 
     child.stdout.on('data', async data => {
         await sub_processData(JSON.parse(data).stat,false);
